@@ -46,7 +46,7 @@ gc()
 # Limpieza de data:
 # df[df==''] <- NA
 # df[df==' '] <- NA
-# Separación de Llaves, Variables Numéricas, Variables Categóricas:
+# SeparaciÃ³n de Llaves, Variables NumÃ©ricas, Variables CategÃ³ricas:
 # Separando las llaves del Dataframe:
 str(df)
 vars_keys<-c("Periodo","NumeroDocumento")
@@ -85,7 +85,7 @@ var_zero = nearZeroVar(data_num, names=TRUE)
 data_num = data_num[,!names(data_num) %in% var_zero]
 
 # Tratamiento de variables Categoricas:
-# Se utilizará una plantilla en excel, para hacer la sintaxis para todas las categóricas:
+# Se utilizarÃ¡ una plantilla en excel, para hacer la sintaxis para todas las categÃ³ricas:
 # Frecuencias_Categoricas.xls (Plantilla en excel)
 View(as.data.frame(vars_cat))
 data_cat<-add_count(data_cat,subset,Flag_XL_3UM_Total)%>%rename("n_Flag_XL_3UM_Total"=n)
@@ -107,7 +107,7 @@ data_cat<-add_count(data_cat,subset,SegmentoSSFFTC)%>%rename("n_SegmentoSSFFTC"=
 # }
 
 
-# Revisando los niveles de las categóricas:
+# Revisando los niveles de las categÃ³ricas:
 # Guardamos los niveles de las variables categoricas del train:
 niveles_vcat_train <- list()
 for (i in 1:length(vars_cat)) {
@@ -156,13 +156,13 @@ gc()
 #####################################################################
 #################### TRATAMIENTO DE OUTLIERS ########################
 #####################################################################
-# Se realizará algunos exploratorios, de tal manera de revisar outliers
-# Además, el tratamiento que se realizará será acotando los extremos con percentiles
+# Se realizarÃ¡ algunos exploratorios, de tal manera de revisar outliers
+# AdemÃ¡s, el tratamiento que se realizarÃ¡ serÃ¡ acotando los extremos con percentiles
 # percentil 1-99 o  2-98
 
 
 #################################################
-###### Obtención de variables finales:###########
+###### ObtenciÃ³n de variables finales:###########
 #################################################
 df<-data.frame(data_num,data_cat)
 rm(data_cat,data_num)
@@ -174,8 +174,8 @@ gc()
 
 # Realizar exploratorio con la data:
 
-# Cortes de las variables numéricas, y combinación de cosas para crear nuevas:
-# Número de grupos, esto suponiendo que lo cortaremos en partes iguales de 5
+# Cortes de las variables numÃ©ricas, y combinaciÃ³n de cosas para crear nuevas:
+# NÃºmero de grupos, esto suponiendo que lo cortaremos en partes iguales de 5
 data_final<-mutate(data_final,VARX=cut2(data_final$varx,g=5)) 
 
 # En caso de que en el exploratorio se vean otras cosas, utilizar lo siguiente para crear nuevas:
@@ -185,11 +185,11 @@ data$varx[data$var1==1&data$var2]<-'UNDERGRAD'
 data$varx[data$var1==1&data$var2]<-'UNDERGRAD'
 data$varx[data$var1==1&data$var2]<-'UNDERGRAD'
 
-# Construcción de variables por ratios:
+# ConstrucciÃ³n de variables por ratios:
 df$varxnew<-ifelse(condicion1,valororiginal,casocontrario)
 
 ######## 6- PREPARANDO LA DATA PARA XGBOOST #######
-# Construcción de Dummies:
+# ConstrucciÃ³n de Dummies:
 # En vars_cat, se puede poner solo las variables que se quieran dummisear
 # En caso que no tenga muchos niveles, se pueden poner como dummies todas, en otro caso
 # Solo seleccionar el conteo, y las que tengan menos de 10 niveles, ponerlas como dummies.
@@ -271,7 +271,7 @@ for (i in 1:nrow(param_grid_cv)) {
   param_grid_cv$train_auc_mean[i] <- fit$evaluation_log[fit$evaluation_log[,test_auc_mean]==param_grid_cv$test_auc_mean[i],train_auc_mean]
   param_grid_cv$nronda_cv[i] <- which.max(fit$evaluation_log[,test_auc_mean])
   param_grid_cv$dif_train_test[i]<-param_grid_cv$train_auc_mean[i]-param_grid_cv$test_auc_mean[i]
-  print(cat(paste0('El mayor auc es en la iteración: ', param_grid_cv$n_ronda_mean_sd_test[i], '\n')))
+  print(cat(paste0('El mayor auc es en la iteraciÃ³n: ', param_grid_cv$n_ronda_mean_sd_test[i], '\n')))
   
   # En caso que sea Log-loss:
   # param_grid_cv$n_ronda_mean_sd_test[i] <- which.min(fit$evaluation_log[,test_logloss_mean]-fit$evaluation_log[,test_logloss_std])
@@ -279,7 +279,7 @@ for (i in 1:nrow(param_grid_cv)) {
   # param_grid_cv$train_logloss_mean[i] <- fit$evaluation_log[fit$evaluation_log[,test_logloss_mean]==param_grid_cv$test_logloss_mean[i],train_logloss_mean]
   # param_grid_cv$nronda_cv[i] <- which.min(fit$evaluation_log[,test_logloss_mean])
   # param_grid_cv$dif_train_test[i]<-param_grid_cv$test_logloss_mean[i]-param_grid_cv$train_logloss_mean[i]
-  # print(cat(paste0('El minimo logloss es en la iteración: ', param_grid_cv$n_ronda_mean_sd_test[i], '\n')))
+  # print(cat(paste0('El minimo logloss es en la iteraciÃ³n: ', param_grid_cv$n_ronda_mean_sd_test[i], '\n')))
   
   print("---------------------------------------------------------------------------------------")
 }
