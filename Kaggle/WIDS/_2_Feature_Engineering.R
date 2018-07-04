@@ -15,15 +15,16 @@ feature_engineering <- function(tb){
     suppressWarnings(suppressMessages(library(dplyr)))
     
     # Eliminar columas contantes
-    tb[,c('MM2_16','DG5_96')]
+    tb[,c('MM2_16','DG5_96')] <- NULL
     
     tb[,'vive_en_pueblo'] <- ifelse(is.na(tb$AA5),0,1)
+    tb[,c('AA5','AA6')] <- NULL
     
     tb[,'edad'] <- 2018 - tb$DG1
     tb$DG1 <- NULL
     
     tb[,'religion_hinduismo'] <- ifelse(tb$DG3A==4,1,0)
-    tb$DG3A <- NULL
+    #tb$DG3A <- NULL
     
     # tb[,'uid'] <- ifelse(tb$DG5_1==2,0,1)
     # tb[,'tarjeta_PAN'] <- ifelse(tb$DG5_2==2,0,1)
@@ -77,7 +78,7 @@ feature_engineering <- function(tb){
         
         for(col in vars_start){
             
-            if(sum(!is.na(unique(tb$FF6_1,na.rm=F)))==3){
+            if(sum(!is.na(unique(tb[[col]],na.rm=F)))==3){
                 
                 tb[col] <- ifelse(tb[[col]]==2,-1,
                                      ifelse(tb[[col]]==99,0,1))
@@ -237,7 +238,7 @@ feature_engineering <- function(tb){
     tb[,'grupo_ahorro'] <- ifelse(is.na(tb$IFI24),1,0)
     tb[,'no_grupo_ahorro_no_conoce'] <- ifelse(tb$IFI24==4,1,0)
     
-    tb[,'IFI24'] <- NULL
+    # tb[,'IFI24'] <- NULL
     
     # Manejo/Gestión del dinero.
     # FL1,FL2 variables escala de tiempo ordinal. No treatment
@@ -247,7 +248,7 @@ feature_engineering <- function(tb){
     
     tb[,'depende_esposo_cons_financ'] <- ifelse(tb$FL4==2,1,0)
     tb[,'depende_nosabe_cons_financ'] <- ifelse(tb$FL4==99,1,0)
-    tb[,'FL4'] <- NULL
+    #tb[,'FL4'] <- NULL
     
     tb[,'gasto_menor_ingresos'] <- ifelse(tb$FL6_1==2,0,1)
     tb[,'fondo_emergencia'] <- ifelse(tb$FL6_2==2,0,1)
@@ -275,18 +276,18 @@ feature_engineering <- function(tb){
         tb$FL16 + tb$FL17 + tb$FL18
     
     # FB1_1 AL FB1_2, flags, no treatment:
-    tb[,'FB2'] <- NULL
+    # tb[,'FB2'] <- NULL
     
     tb['necesito_cred_anteriormente'] <- ifelse(tb$FB3==2,0,1)
     tb[,'FB3'] <- NULL
     
     tb['pago_loans_antes_deadline'] <- ifelse(tb$FB18==1,1,0)
     tb['nopido_loans'] <- ifelse(tb$FB18==5,1,0)
-    tb[,'FB18'] <- NULL
+    # tb[,'FB18'] <- NULL
     
     # Pregunta para el perfil:
     tb[,'gasto_loans_medicine'] <- ifelse(tb$FB19==1,1,0)
-    tb[,'FB19'] <- NULL
+    # tb[,'FB19'] <- NULL
     
     # FB20: mean_encoding
     
@@ -319,8 +320,11 @@ feature_engineering <- function(tb){
     tb[,'decide_finanservp_esposo'] <- ifelse(tb$GN5==2,1,0)
     tb[,'decide_finanservp_otro'] <- ifelse(tb$GN5==96,1,0)
     
-    tb[,'decsiones_tot_esposo'] <- tb[,'decide_gasto_esposo'] + tb[,'decide_gastodiario_esposo'] +
-        tb[,'controla_props_esposo'] + tb[,'decide_finanserv_esposo'] + tb[,'decide_finanservp_esposo']
+    tb[,'decsiones_tot_esposo'] <- ifelse(is.na(tb$decide_gasto_esposo),0,tb$decide_gasto_esposo) + 
+        ifelse(is.na(tb$decide_gastodiario_esposo),0,tb$decide_gastodiario_esposo) + 
+        ifelse(is.na(tb$controla_props_esposo),0,tb$controla_props_esposo) + 
+        ifelse(is.na(tb$decide_finanserv_esposo),0,tb$decide_finanserv_esposo) +
+        ifelse(is.na(tb$decide_finanservp_esposo),0,tb$decide_finanservp_esposo)
     
     # DG8a - DG9c variables numéricas.
     
@@ -338,5 +342,52 @@ cols_tol_miss_test <- c('test_id',setdiff(cols_tol_miss,c('train_id','is_female'
 train_feat <- train_feat[,cols_tol_miss_train]
 test_feat <- test_feat[,cols_tol_miss_test]
 
-write.csv(train_feat,'./dataset_training/train_feat.csv',row.names = F)
-write.csv(test_feat,'./dataset_training/test_feat.csv',row.names = F)
+library(data.table)
+
+# transform datasets
+setDT(train_feat)
+setDT(test_feat)
+
+# Mean Encoding:
+mean_encoding <- function(train,test,cat_vars,target,add_freq_enc=F){
+    
+    for(var in cat_vars){
+        
+        df_mean <- train[,c(var,target),with=F][,.(suma=sum(get(target))/nrow(train)),by=get(var)]
+        colnames(df_mean) <- c(var,paste0('mean_',var))
+        
+        train <- data.table(dplyr::left_join(train,df_mean,by=var))
+        test <- data.table(dplyr::left_join(test,df_mean,by=var))
+        
+        if(add_freq_enc){
+            
+            df_count <- train[,c(var,target),with=F][,.(cuenta=.N/nrow(train)),by=get(var)]
+            colnames(df_count) <- c(var,paste0('freq_',var))
+            
+            train <- data.table(dplyr::left_join(train,df_count,by=var))
+            test <- data.table(dplyr::left_join(test,df_count,by=var))
+            
+        }
+        
+    }
+    
+    train[,(cat_vars):=NULL]
+    test[,(cat_vars):=NULL]
+    
+    return(list(train,test))
+}
+
+
+cat_feat <- c('AA3','DG3','DG3A','IFI24','FL4','FL9A','FL9B','FL9C','FL10','FB2','FB18','FB19','FB20',
+              'FB24','LN1A','LN1B')
+
+train_feat2 <- copy(train_feat)
+test_feat2 <- copy(test_feat)
+
+data_sets <- mean_encoding(train_feat,test_feat,cat_feat,'is_female',add_freq_enc = T)
+
+train_feat <- data_sets[[1]]
+test_feat <- data_sets[[2]]
+
+fwrite(train_feat,'./dataset_training/train_feat.csv')
+fwrite(test_feat,'./dataset_training/test_feat.csv')
